@@ -25,16 +25,27 @@ module Serialize : sig
     val into_octets : t -> int -> octets -> unit
   end
 
+  type 't s = (module S with type t = 't)
+
+  val string : string s
+  val bigarray  : (char,
+                   Bigarray.int8_unsigned_elt,
+                   Bigarray.c_layout) Bigarray.Array1.t s
+
   module String : S with type t = string
   module Bigarray :
     S with type t = (char,
                      Bigarray.int8_unsigned_elt,
                      Bigarray.c_layout) Bigarray.Array1.t
+
   (*module Ctypes : S with type t = Unsigned.uchar Ctypes.Array.t*)
 end
 
+
 module Random : sig
   val stir : unit -> unit
+
+  val gen : 't Serialize.s -> int -> 't
 
   module Make : functor (T : Serialize.S) -> sig
     val gen : int -> T.t
@@ -91,6 +102,32 @@ module Box : sig
     (** Can raise {! exception : VerificationFailure } *)
     val box_open_afternm : channel key -> ciphertext -> nonce:nonce -> T.t
   end
+
+  val box_write_key : 't Serialize.s -> 'a key -> 't
+  (** Can raise {! exception : 't Serialize.s -> KeyError } *)
+  val box_read_public_key : 't Serialize.s -> 't -> public key
+  (** Can raise {! exception : 't Serialize.s -> KeyError } *)
+  val box_read_secret_key : 't Serialize.s -> 't -> secret key
+  (** Can raise {! exception : 't Serialize.s -> KeyError } *)
+  val box_read_channel_key: 't Serialize.s -> 't -> channel key
+
+  val box_write_nonce : 't Serialize.s -> nonce -> 't
+  (** Can raise {! exception : 't Serialize.s -> NonceError } *)
+  val box_read_nonce : 't Serialize.s -> 't -> nonce
+
+  val box_write_ciphertext : 't Serialize.s -> ciphertext -> 't
+  val box_read_ciphertext : 't Serialize.s -> 't -> ciphertext
+
+  val box_keypair : 't Serialize.s -> unit -> public key * secret key
+  val box : 't Serialize.s ->
+    secret key -> public key -> 't -> nonce:nonce -> ciphertext
+  (** Can raise {! exception : VerificationFailure } *)
+  val box_open : 't Serialize.s ->
+    secret key -> public key -> ciphertext -> nonce:nonce -> 't
+  val box_beforenm : 't Serialize.s -> secret key -> public key -> channel key
+  val box_afternm : 't Serialize.s -> channel key -> 't -> nonce:nonce -> ciphertext
+  (** Can raise {! exception : VerificationFailure } *)
+  val box_open_afternm : 't Serialize.s -> channel key -> ciphertext -> nonce:nonce -> 't
 end
 
 module Sign : sig
@@ -126,6 +163,19 @@ module Sign : sig
     (** Can raise {! exception : VerificationFailure } *)
     val sign_open : public key -> T.t -> T.t
   end
+
+  val sign_write_key : 't Serialize.s -> 'a key -> 't
+  (** Can raise {! exception : KeyError } *)
+  val sign_read_public_key : 't Serialize.s -> 't -> public key
+  (** Can raise {! exception : KeyError } *)
+  val sign_read_secret_key : 't Serialize.s -> 't -> secret key
+
+  (** Can raise {! exception : SeedError } *)
+  val sign_seed_keypair : 't Serialize.s -> 't -> public key * secret key
+  val sign_keypair : 't Serialize.s -> unit -> public key * secret key
+  val sign : 't Serialize.s -> secret key -> 't -> 't
+  (** Can raise {! exception : VerificationFailure } *)
+  val sign_open : 't Serialize.s -> public key -> 't -> 't
 end
 
 module Make : functor (T : Serialize.S) -> sig

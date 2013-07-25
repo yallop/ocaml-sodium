@@ -39,6 +39,8 @@ module Serialize = struct
     val into_octets : t -> int -> octets -> unit
   end
 
+  type 't s = (module S with type t = 't)
+
   module String : S with type t = string = struct
     type t = string
 
@@ -77,6 +79,9 @@ module Serialize = struct
         b.(i + start) <- UChar.of_int (int_of_char s.{i});
       done
   end
+
+  let string : string s = (module String)
+  let bigarray : char_bigarray s = (module Bigarray)
 end
 
 module C = struct
@@ -102,6 +107,9 @@ module Random = struct
       C.gen (Array.start b) (Size_t.of_int sz);
       T.of_octets 0 b
   end
+
+  let gen (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.gen
 end
 
 let wipe_octets o =
@@ -263,6 +271,48 @@ module Box = struct
       if ret <> 0 then raise VerificationFailure;
       T.of_octets bytes.zero m
   end
+
+  let box_read_public_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_read_public_key
+
+  let box_read_secret_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_read_secret_key
+
+  let box_read_channel_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_read_channel_key
+
+  let box_write_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_write_key
+
+  let box_read_nonce (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_read_nonce
+
+  let box_write_nonce (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_write_nonce
+
+  let box_read_ciphertext (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_read_ciphertext
+
+  let box_write_ciphertext (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_write_ciphertext
+
+  let box_keypair (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_keypair
+
+  let box (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box
+
+  let box_open (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_open
+
+  let box_beforenm (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_beforenm
+
+  let box_afternm (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_afternm
+
+  let box_open_afternm (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.box_open_afternm
 end
 
 module Sign = struct
@@ -368,6 +418,27 @@ module Sign = struct
       assert ((ULLong.to_int (!@ pmlen)) = mlen); (* TODO: exn *)
       T.of_octets 0 m
   end
+
+  let sign_read_public_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_read_public_key
+
+  let sign_read_secret_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_read_secret_key
+
+  let sign_write_key (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_write_key
+
+  let sign_seed_keypair (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_seed_keypair
+
+  let sign_keypair (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_keypair
+
+  let sign (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign
+                           
+  let sign_open (type s) ((module T) : s Serialize.s) =
+    let module M = Make(T) in M.sign_open
 end
 
 module Make(T : Serialize.S) = struct
